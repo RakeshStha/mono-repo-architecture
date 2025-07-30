@@ -1,0 +1,23 @@
+FROM node:lts AS dev
+
+WORKDIR /repo
+
+# Enable Corepack and pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy only the files needed to install dependencies
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/project-b/package.json apps/project-b/
+COPY packages/common/package.json packages/common/
+
+# Install just the filtered deps, cached as a separate Docker layer
+ENV CI=true
+RUN pnpm install --filter=project-b... --workspace-root
+
+# Now copy the full repo
+COPY . .
+
+# Move into app and run dev
+WORKDIR /repo/apps/project-b
+EXPOSE 5174
+CMD ["pnpm", "dev"]

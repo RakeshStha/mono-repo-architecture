@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+**/dist/
+**/build/
+
+# Vite, Turbo, Next.js
+.vite/
+.turbo/
+.next/
+**/.vite/
+**/.turbo/
+**/.next/
+
+# OS and IDE junk
+.DS_Store
+.env*
+*.log

@@ -1,0 +1,33 @@
+{
+  "name": "mono-repo-architecture",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "turbo": "^1.12.0",
+    "concurrently": "^8.2.2"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "dev:local": "concurrently \"pnpm --filter project-a dev\" \"pnpm --filter project-b dev\"",
+    "dev:docker": "pnpm run docker:project-a && pnpm run docker:project-b && pnpm run docker:nginx",
+    "docker:project-a": "docker build -f apps/project-a/Dockerfile.development -t project-a-dev . && docker run --rm -d --name project-a-dev -p 5173:5173 project-a-dev",
+    "docker:project-b": "docker build -f apps/project-b/Dockerfile.development -t project-b-dev . && docker run --rm -d --name project-b-dev -p 5174:5174 project-b-dev",
+    "docker:nginx": "docker build -f nginx/Dockerfile.development -t nginx-dev ./nginx && docker run --rm -d --name nginx-dev -p 3000:80 nginx-dev",
+    "docker:stop": "docker stop project-a-dev project-b-dev nginx-dev || true",
+    "build:prod": "pnpm --filter project-a build && pnpm --filter project-b build",
+    "start:prod": "pnpm run docker:nginx:prod",
+    "docker:nginx:prod": "docker build -f nginx/Dockerfile.production -t mono-prod .",
+    "docker:stop:prod": "docker stop mono-prod || true"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.13.1"
+}
