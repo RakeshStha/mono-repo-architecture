@@ -8,7 +8,7 @@ import Contact from "./components/Contact";
 
 function App() {
   return (
-    <BrowserRouter basename="/">
+  <BrowserRouter basename="/project-a">
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
