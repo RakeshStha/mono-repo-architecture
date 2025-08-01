@@ -1,0 +1,83 @@
+stages:
+  - prepare
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""  # disable TLS for docker:dind
+
+.default_job:
+  image: node:20
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
+    - pnpm install
+    - git fetch origin main
+
+.prepare_changes:
+  stage: prepare
+  script:
+    - echo "Checking changed projects..."
+    - |
+      CHANGED_FILES=$(git diff --name-only origin/main HEAD)
+      echo "$CHANGED_FILES" > changed_files.txt
+  artifacts:
+    paths:
+      - changed_files.txt
+
+build_project_a:
+  stage: build
+  extends: .default_job
+  needs: [".prepare_changes"]
+  script:
+    - |
+      if grep -q "^apps/project-a/" changed_files.txt || grep -q "^packages/common/" changed_files.txt; then
+        echo "✅ Building project-a..."
+        pnpm turbo run build --filter=project-a
+        docker build -f apps/project-a/Dockerfile -t project-a-app .
+      else
+        echo "🟢 No changes in project-a — skipping build"
+      fi
+  artifacts:
+    paths:
+      - apps/project-a/dist/
+
+build_project_b:
+  stage: build
+  extends: .default_job
+  needs: [".prepare_changes"]
+  script:
+    - |
+      if grep -q "^apps/project-b/" changed_files.txt || grep -q "^packages/common/" changed_files.txt; then
+        echo "✅ Building project-b..."
+        pnpm turbo run build --filter=project-b
+        docker build -f apps/project-b/Dockerfile -t project-b-app .
+      else
+        echo "🟢 No changes in project-b — skipping build"
+      fi
+  artifacts:
+    paths:
+      - apps/project-b/dist/
+
+build_nginx:
+  stage: build
+  image: docker:24.0.2
+  services:
+    - docker:dind
+  needs: [build_project_a, build_project_b]
+  script:
+    - docker build -t nginx-app -f nginx/Dockerfile nginx
+
+deploy:
+  stage: deploy
+  image: docker:24.0.2
+  services:
+    - docker:dind
+  needs: [build_project_a, build_project_b, build_nginx]
+  script:
+    - docker network create app-network || true
+    - docker run -d --name project-a --network app-network project-a-app
+    - docker run -d --name project-b --network app-network project-b-app
+    - docker run -d --name nginx --network app-network -p 3000:80 nginx-app
+    - echo "🚀 All services deployed successfully"
