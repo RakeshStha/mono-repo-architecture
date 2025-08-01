@@ -16,12 +16,12 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "dev:local": "concurrently \"pnpm --filter project-a dev\" \"pnpm --filter project-b dev\"",
-    "dev:proxy": "vite --config apps/proxy-dev/vite.config.js",
-    "dev:all": "concurrently \"pnpm dev:local\" \"pnpm dev:proxy\"",
     "build:all": "turbo run build",
-    "docker:build": "docker build -f nginx/Dockerfile.production -t monorepo-app .",
-    "docker:start": "docker run --rm -d -p 3000:80 --name monorepo-app monorepo-app",
-    "docker:stop": "docker stop monorepo-app || true"
+    "docker:build": "pnpm run docker:stop && docker build -t project-a-app -f apps/project-a/Dockerfile . && docker build -t project-b-app -f apps/project-b/Dockerfile . && docker build -t nginx-app -f nginx/Dockerfile ./nginx",
+    "docker:start": "docker network create app-network || true && docker run -d --name project-a --network app-network project-a-app && docker run -d --name project-b --network app-network project-b-app && docker run -d --name nginx --network app-network -p 3000:80 nginx-app",
+    "docker:stop": "docker stop nginx project-a project-b || true && docker rm nginx project-a project-b || true && docker network rm app-network || true",
+    "docker:dev:start": "docker network create app-network || true && docker run -d --name project-a --network app-network -p 5173:80 project-a-app && docker run -d --name project-b --network app-network -p 5174:80 project-b-app && docker run -d --name nginx --network app-network -p 3000:80 nginx-app",
+    "docker:dev:stop": "docker stop nginx project-a project-b || true && docker rm nginx project-a project-b || true && docker network rm app-network || true"
   },
   "keywords": [],
   "author": "",

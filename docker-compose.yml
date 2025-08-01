@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  project-a:
+    build:
+      context: .
+      dockerfile: apps/project-a/Dockerfile
+    container_name: project-a
+    networks:
+      - app-network
+
+  project-b:
+    build:
+      context: .
+      dockerfile: apps/project-b/Dockerfile
+    container_name: project-b
+    networks:
+      - app-network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - project-a
+      - project-b
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
